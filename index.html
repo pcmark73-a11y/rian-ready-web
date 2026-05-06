@@ -62,7 +62,6 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* สไตล์ประชาสัมพันธ์ */
         .news-header-card {
             background: white; border-radius: 20px; padding: 16px 20px;
             border-left: 6px solid #a855f7; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -72,7 +71,7 @@
             border-left: 5px solid #a855f7; transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 16px; cursor: pointer;
         }
-        .news-card:hover { transform: translateY(-2px); shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .news-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         .news-icon-box {
             width: 44px; height: 44px; background: #f5f3ff; border-radius: 12px;
             display: flex; align-items: center; justify-content: center; color: #a855f7; flex-shrink: 0;
@@ -142,14 +141,12 @@
     </div>
 
     <script>
-        // --- ส่วนเชื่อมต่อ API ---
         const API_URL = "https://script.google.com/macros/s/AKfycbwSYFp6AA250FJie4PugffmPaC7jCkufxeHAaD70kERw41037OiwGqO4pm9nD-KhI-_NQ/exec";
         let umbrellas = [];
-        let currentType = 'borrow'; // 'borrow' หรือ 'return'
+        let currentType = 'borrow'; 
 
         window.onload = () => { refreshData(); loadNews(); };
 
-        // ฟังก์ชันหลักสำหรับเรียก API
         async function callGAS(payload) {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -237,16 +234,31 @@
             btn.innerText = "กำลังบันทึก...";
             btn.disabled = true;
 
-            const newStatuses = await callGAS({ action: 'recordData', data: data });
-            alert('ดำเนินการสำเร็จ');
-            updateUmbrellasArray(newStatuses);
-            renderUmbrellas();
-            closeModal('borrowModal');
+            try {
+                const result = await callGAS({ action: 'recordData', data: data });
+                if (result.status === 'success') {
+                    // การแจ้งเตือนแบบเก่าพร้อมข้อมูลเวลาและจำนวนวัน
+                    let msg = currentType === 'borrow' 
+                        ? `✅ ดำเนินการยืมสำเร็จ!\n⏰ เวลา: ${result.time} น.` 
+                        : `✅ ดำเนินการคืนสำเร็จ!\n⏰ เวลา: ${result.time} น.\n📅 ยืมไปทั้งหมด: ${result.days} วัน`;
+                    
+                    alert(msg);
+                    updateUmbrellasArray(result.newInventory);
+                    renderUmbrellas();
+                    closeModal('borrowModal');
+                    // Reset Form
+                    ['studentName', 'studentClass', 'studentNo', 'studentId', 'manualUmbrellaId'].forEach(fieldId => {
+                        document.getElementById(fieldId).value = "";
+                    });
+                }
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            }
+
             btn.disabled = false;
             btn.innerText = "ยืนยันข้อมูล";
         }
 
-        // ฟังก์ชันช่วยแสดงผล
         function getStatusClass(s) { return s === 'available' ? 'status-available' : (s === 'borrowed' ? 'status-borrowed' : 'status-damaged'); }
         function getStatusBadge(s) { return s === 'available' ? 'bg-green-100 text-green-700' : (s === 'borrowed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'); }
         function getStatusText(s) { return s === 'available' ? 'ว่าง' : (s === 'borrowed' ? 'ถูกยืม' : 'ชำรุด'); }
@@ -254,9 +266,8 @@
         
         async function openAdminModal() {
             const pass = prompt("กรุณาใส่รหัสผ่านแอดมิน:");
-            if(pass === 'Sapa1234') { // ตัวอย่างการเช็กง่ายๆ (ควรใช้ API เช็กจริง)
+            if(pass === 'Sapa1234') {
                 alert("ยินดีต้อนรับแอดมิน");
-                // คุณสามารถเพิ่ม Code แสดงแผง Admin ต่อได้ที่นี่
             } else {
                 alert("รหัสผ่านไม่ถูกต้อง");
             }
